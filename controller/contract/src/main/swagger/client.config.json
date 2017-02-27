@@ -1,0 +1,9 @@
+{
+"sourceFolder" : "src/main/java",
+"modelPackage" : "com.emc.pravega.controller.client.rest.generated.model",
+"apiPackage" : "com.emc.pravega.controller.client.rest.generated.api",
+"invokerPackage" : "com.emc.pravega.controller.client.rest.generated.invoker",
+"library" : "retrofit2",
+"useRxJava" : true,
+"hideGenerationTimestamp" : true
+}
