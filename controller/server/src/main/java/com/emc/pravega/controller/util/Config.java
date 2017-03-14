@@ -28,10 +28,7 @@ public final class Config {
             .resolve();
 
     //RPC Server configuration
-    public static final int SERVER_PORT = CONFIG.getInt("config.controller.server.port");
-    public static final int SERVER_SELECTOR_THREAD_COUNT = CONFIG.getInt("config.controller.server.selectorThreadCount");
-    public static final int SERVER_WORKER_THREAD_COUNT = CONFIG.getInt("config.controller.server.workerThreadCount");
-    public static final int SERVER_MAX_READ_BUFFER_BYTES = CONFIG.getInt("config.controller.server.maxReadBufferBytes");
+    public static final int RPC_SERVER_PORT = CONFIG.getInt("config.controller.server.port");
     public static final int ASYNC_TASK_POOL_SIZE = CONFIG.getInt("config.controller.server.asyncTaskPoolSize");
 
     //Pravega Service endpoint configuration. Used only for a standalone single node deployment.
@@ -67,4 +64,17 @@ public final class Config {
     //REST server configuration
     public static final String REST_SERVER_IP = CONFIG.getString("config.controller.server.rest.serverIp");
     public static final int REST_SERVER_PORT = CONFIG.getInt("config.controller.server.rest.serverPort");
+
+    //Transaction configuration
+    public static final long MAX_LEASE_VALUE = CONFIG.getLong("config.controller.server.transaction.maxLeaseValue");
+    public static final long MAX_SCALE_GRACE_PERIOD = CONFIG.getLong("config.controller.server.transaction.maxScaleGracePeriod");
+
+    public static final String INTERNAL_SCOPE = CONFIG.getString("config.controller.server.internal.scope");
+
+    // Request Stream Configuration
+    public static final String SCALE_STREAM_NAME = CONFIG.getString("config.controller.server.internal.scale.streamName");
+
+    // Request Stream readerGroup
+    public static final String SCALE_READER_GROUP = CONFIG.getString("config.controller.server.internal.scale.readerGroup.name");
+    public static final String SCALE_READER_ID = CONFIG.getString("config.controller.server.internal.scale.readerGroup.readerId");
 }

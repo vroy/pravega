@@ -61,7 +61,7 @@ public class SegmentOutputStreamFactoryImpl implements SegmentOutputStreamFactor
             return cf.establishConnection(endpointForSegment, replyProcessor);
         }).thenAccept((ClientConnection connection) -> {
             try {
-                connection.send(new GetTransactionInfo(segment.getScopedName(), txId));
+                connection.send(new GetTransactionInfo(1, segment.getScopedName(), txId));
             } catch (ConnectionFailedException e) {
                 throw new RuntimeException(e);
             } 
@@ -73,7 +73,7 @@ public class SegmentOutputStreamFactoryImpl implements SegmentOutputStreamFactor
     }
 
     @Override
-    public SegmentOutputStream createOutputStreamForSegment(Segment segment, SegmentOutputConfiguration config)
+    public SegmentOutputStream createOutputStreamForSegment(Segment segment)
             throws SegmentSealedException {
         SegmentOutputStreamImpl result = new SegmentOutputStreamImpl(segment.getScopedName(), controller, cf, UUID.randomUUID());
         try {
