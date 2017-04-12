@@ -3,6 +3,7 @@
  */
 package com.emc.pravega.controller.task.Stream;
 
+import com.emc.pravega.controller.store.stream.tables.State;
 import com.emc.pravega.testcommon.TestingServerStarter;
 import com.emc.pravega.controller.server.ControllerService;
 import com.emc.pravega.controller.mocks.SegmentHelperMock;
@@ -98,10 +99,11 @@ public class StreamMetadataTasksTest {
 
         final ScalingPolicy policy1 = ScalingPolicy.fixed(2);
         final StreamConfiguration configuration1 = StreamConfiguration.builder().scope(SCOPE).streamName(stream1).scalingPolicy(policy1).build();
-        streamStorePartialMock.createScope(SCOPE);
+        streamStorePartialMock.createScope(SCOPE).get();
 
         long start = System.currentTimeMillis();
-        streamStorePartialMock.createStream(SCOPE, stream1, configuration1, start, null, executor);
+        streamStorePartialMock.createStream(SCOPE, stream1, configuration1, start, null, executor).get();
+        streamStorePartialMock.setState(SCOPE, stream1, State.ACTIVE, null, executor).get();
 
         AbstractMap.SimpleEntry<Double, Double> segment1 = new AbstractMap.SimpleEntry<>(0.5, 0.75);
         AbstractMap.SimpleEntry<Double, Double> segment2 = new AbstractMap.SimpleEntry<>(0.75, 1.0);

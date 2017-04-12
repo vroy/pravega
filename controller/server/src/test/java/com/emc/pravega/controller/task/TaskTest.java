@@ -3,6 +3,7 @@
  */
 package com.emc.pravega.controller.task;
 
+import com.emc.pravega.controller.store.stream.tables.State;
 import com.emc.pravega.testcommon.TestingServerStarter;
 import com.emc.pravega.controller.mocks.SegmentHelperMock;
 import com.emc.pravega.controller.server.SegmentHelper;
@@ -100,10 +101,14 @@ public class TaskTest {
         final StreamConfiguration configuration2 = StreamConfiguration.builder().scope(SCOPE).streamName(stream2).scalingPolicy(policy2).build();
 
         // region createStream
-        streamStore.createScope(SCOPE);
+        streamStore.createScope(SCOPE).get();
         long start = System.currentTimeMillis();
-        streamStore.createStream(SCOPE, stream1, configuration1, start, null, executor);
-        streamStore.createStream(SCOPE, stream2, configuration2, start, null, executor);
+        streamStore.createStream(SCOPE, stream1, configuration1, start, null, executor).get();
+        streamStore.setState(SCOPE, stream1, State.ACTIVE, null, executor).get();
+
+        streamStore.createStream(SCOPE, stream2, configuration2, start, null, executor).get();
+        streamStore.setState(SCOPE, stream2, State.ACTIVE, null, executor).get();
+
         // endregion
 
         // region scaleSegments
@@ -142,7 +147,7 @@ public class TaskTest {
             assertTrue(e.getCause() instanceof StreamAlreadyExistsException);
         }
 
-        streamStore.createScope(SCOPE);
+        streamStore.createScope(SCOPE).get();
         CreateStreamStatus.Status result = streamMetadataTasks.createStream(SCOPE, "dummy", configuration1,
                 System.currentTimeMillis()).join();
         assertEquals(result, CreateStreamStatus.Status.SUCCESS);
