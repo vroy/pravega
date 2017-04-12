@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -227,7 +226,7 @@ public class InMemoryStreamTest {
                 new AbstractMap.SimpleEntry<>(0.3, 0.4),
                 new AbstractMap.SimpleEntry<>(0.4, 1.0));
 
-        long scale2 = scale1 + 10;
+        long scale2 = scale1 + 10000;
         newSegments = store.startScale(SCOPE, streamName, Lists.newArrayList(1, 2, 5), newRanges, scale2, context, executor).get();
         store.scaleNewSegmentsCreated(SCOPE, streamName, Lists.newArrayList(1, 2, 5), newSegments, scale2, context, executor).get();
         store.scaleSegmentsSealed(SCOPE, streamName, Lists.newArrayList(1, 2, 5), newSegments, scale2, context, executor).get();
@@ -243,7 +242,7 @@ public class InMemoryStreamTest {
                 new AbstractMap.SimpleEntry<>(0.35, 0.6),
                 new AbstractMap.SimpleEntry<>(0.6, 1.0));
 
-        long scale3 = scale2 + 10;
+        long scale3 = scale2 + 10000;
         List<Segment> segmentsAfterScale = store.startScale(SCOPE, streamName, Lists.newArrayList(7, 8), newRanges, scale3, context, executor).get();
         store.scaleNewSegmentsCreated(SCOPE, streamName, Lists.newArrayList(7, 8), segmentsAfterScale, scale3, context, executor).get();
         store.scaleSegmentsSealed(SCOPE, streamName, Lists.newArrayList(7, 8), segmentsAfterScale, scale3, context, executor).get();
@@ -262,23 +261,23 @@ public class InMemoryStreamTest {
         assertEquals(historicalSegments.size(), 5);
         assertTrue(historicalSegments.containsAll(Lists.newArrayList(0, 1, 2, 3, 4)));
 
-        // scale1 + 1
-        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale1 + 1, context, executor).get();
+        // scale2 - 1
+        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale2 - 1, context, executor).get();
         assertEquals(historicalSegments.size(), 4);
         assertTrue(historicalSegments.containsAll(Lists.newArrayList(0, 1, 2, 5)));
 
-        // scale2 + 1
-        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale2 + 1, context, executor).get();
+        // scale3 - 1
+        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale3 - 1, context, executor).get();
         assertEquals(historicalSegments.size(), 4);
         assertTrue(historicalSegments.containsAll(Lists.newArrayList(0, 6, 7, 8)));
 
-        // scale3 + 1
-        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale3 + 1, context, executor).get();
+        // scale3 + 10000
+        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale3 + 10000, context, executor).get();
         assertEquals(historicalSegments.size(), 5);
         assertTrue(historicalSegments.containsAll(Lists.newArrayList(0, 6, 9, 10, 11)));
 
-        // scale 3 + 100
-        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale3 + 100, context, executor).get();
+        // scale 3 + 100000
+        historicalSegments = store.getActiveSegments(SCOPE, streamName, scale3 + 100000, context, executor).get();
         assertEquals(historicalSegments.size(), 5);
         assertTrue(historicalSegments.containsAll(Lists.newArrayList(0, 6, 9, 10, 11)));
 
