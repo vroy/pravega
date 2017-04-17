@@ -95,7 +95,7 @@ public class ScaleRequestHandler implements RequestHandler<ScaleRequest> {
     }
 
     private CompletableFuture<Void> processScaleUp(final ScaleRequest request, final ScalingPolicy policy, final OperationContext context) {
-        log.debug("scale up request received for stream {} segment {}", request.getStream(), request.getSegmentNumber());
+        log.info("scale up request received for stream {} segment {}", request.getStream(), request.getSegmentNumber());
         if (policy.getType().equals(ScalingPolicy.Type.FIXED_NUM_SEGMENTS)) {
             return CompletableFuture.completedFuture(null);
         }
@@ -115,7 +115,7 @@ public class ScaleRequestHandler implements RequestHandler<ScaleRequest> {
     }
 
     private CompletableFuture<Void> processScaleDown(final ScaleRequest request, final ScalingPolicy policy, final OperationContext context) {
-        log.debug("scale down request received for stream {} segment {}", request.getStream(), request.getSegmentNumber());
+        log.info("scale down request received for stream {} segment {}", request.getStream(), request.getSegmentNumber());
         if (policy.getType().equals(ScalingPolicy.Type.FIXED_NUM_SEGMENTS)) {
             return CompletableFuture.completedFuture(null);
         }
@@ -128,17 +128,26 @@ public class ScaleRequestHandler implements RequestHandler<ScaleRequest> {
                 .thenCompose(x -> streamMetadataStore.getActiveSegments(request.getScope(), request.getStream(), context, executor))
                 .thenApply(activeSegments -> {
                     assert activeSegments != null;
+
+                    log.info("successfully marked segment {} cold. Current active segments = {}", request.getSegmentNumber(),
+                            tostring(activeSegments));
+
                     final Optional<Segment> currentOpt = activeSegments.stream()
                             .filter(y -> y.getNumber() == request.getSegmentNumber()).findAny();
                     if (!currentOpt.isPresent() || activeSegments.size() == policy.getMinNumSegments()) {
                         // if we are already at min-number of segments, we cant scale down, we have put the marker,
                         // we should simply return and do nothing.
+                        log.info("cant scale segment {} down as active segment count == policy.MinSegments", request.getSegmentNumber());
+
                         return null;
                     } else {
                         final List<Segment> candidates = activeSegments.stream().filter(z -> z.getKeyEnd() == currentOpt.get().getKeyStart() ||
                                 z.getKeyStart() == currentOpt.get().getKeyEnd() || z.getNumber() == request.getSegmentNumber())
                                 .sorted(Comparator.comparingDouble(Segment::getKeyStart))
                                 .collect(Collectors.toList());
+                        log.info("neighbours for segment {} are {}", request.getSegmentNumber(),
+                                tostring(candidates));
+
                         return new ImmutablePair<>(candidates, activeSegments.size() - policy.getMinNumSegments());
                     }
                 })
@@ -154,6 +163,9 @@ public class ScaleRequestHandler implements RequestHandler<ScaleRequest> {
                                         candidate.getNumber(),
                                         context, executor))
                                 .thenApply(segments -> {
+                                    log.info("found cold ngbs for segment {}. they are = {}", request.getSegmentNumber(),
+                                            tostring(segments));
+
                                     if (maxScaleDownFactor == 1 && segments.size() == 3) {
                                         // Note: sorted by keystart so just pick first two.
                                         return Lists.newArrayList(segments.get(0), segments.get(1));
@@ -167,9 +179,7 @@ public class ScaleRequestHandler implements RequestHandler<ScaleRequest> {
                 })
                 .thenCompose(toMerge -> {
                     if (toMerge != null && toMerge.size() > 1) {
-                        toMerge.forEach(x -> {
-                            log.debug("merging stream {}: segment {} ", request.getStream(), x.getNumber());
-                        });
+                        log.info("merging stream {}: segments = {} ", request.getStream(), tostring(toMerge));
 
                         final ArrayList<AbstractMap.SimpleEntry<Double, Double>> simpleEntries = new ArrayList<>();
                         double min = toMerge.stream().mapToDouble(Segment::getKeyStart).min().getAsDouble();
@@ -182,6 +192,14 @@ public class ScaleRequestHandler implements RequestHandler<ScaleRequest> {
                         return CompletableFuture.completedFuture(null);
                     }
                 });
+    }
+
+    private String tostring(List<Segment> activeSegments) {
+        String str = "=";
+        for (int i = 0; i < activeSegments.size(); i++) {
+            str += i + ",";
+        }
+        return str;
     }
 
     /**

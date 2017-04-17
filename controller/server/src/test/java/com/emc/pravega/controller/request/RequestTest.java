@@ -3,8 +3,8 @@
  */
 package com.emc.pravega.controller.request;
 
+import static org.junit.Assert.assertTrue;
 import com.emc.pravega.common.concurrent.FutureHelpers;
-import com.emc.pravega.testcommon.TestingServerStarter;
 import com.emc.pravega.controller.mocks.SegmentHelperMock;
 import com.emc.pravega.controller.requesthandler.ScaleRequestHandler;
 import com.emc.pravega.controller.requests.ScaleRequest;
@@ -22,6 +22,8 @@ import com.emc.pravega.controller.task.Stream.StreamTransactionMetadataTasks;
 import com.emc.pravega.stream.ScalingPolicy;
 import com.emc.pravega.stream.StreamConfiguration;
 import com.emc.pravega.stream.impl.netty.ConnectionFactoryImpl;
+import com.emc.pravega.testcommon.TestingServerStarter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -34,12 +36,12 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.junit.Assert.assertTrue;
-
+@Slf4j
 public class RequestTest {
     private final String scope = "scope";
     private final String stream = "stream";
@@ -122,7 +124,22 @@ public class RequestTest {
 
         request = new ScaleRequest(scope, stream, 4, ScaleRequest.DOWN, System.currentTimeMillis(), 0, false);
 
-        assertTrue(FutureHelpers.await(requestHandler.process(request)));
+        CompletableFuture<Void> process = requestHandler.process(request);
+
+        boolean await = FutureHelpers.await(process);
+
+        log.info("segment 4 cold requestCompleted with:" + await);
+        if (!process.isCompletedExceptionally()) {
+            log.info("test logs: sent cold request for segment 4 completed successfully:");
+        } else {
+            process.exceptionally(e -> {
+                log.error("test logs: sent cold request for segment 4 failed:{}", e);
+                return null;
+            });
+        }
+
+        assertTrue(await);
+
         activeSegments = streamStore.getActiveSegments(scope, stream, null, executor).get();
 
         assertTrue(activeSegments.stream().anyMatch(z -> z.getNumber() == 4));
@@ -130,7 +147,19 @@ public class RequestTest {
 
         request = new ScaleRequest(scope, stream, 3, ScaleRequest.DOWN, System.currentTimeMillis(), 0, false);
 
-        assertTrue(FutureHelpers.await(requestHandler.process(request)));
+        process = requestHandler.process(request);
+        await = FutureHelpers.await(process);
+
+        log.info("segment 3 cold requestCompleted with:" + await);
+        if (!process.isCompletedExceptionally()) {
+            log.info("test logs: sent cold request for segment 3 completed successfully:");
+        } else {
+            process.exceptionally(e -> {
+                log.error("test logs: sent cold request for segment 3 failed:{}", e);
+                return null;
+            });
+        }
+        assertTrue(await);
         activeSegments = streamStore.getActiveSegments(scope, stream, null, executor).get();
 
         assertTrue(activeSegments.stream().noneMatch(z -> z.getNumber() == 3));
