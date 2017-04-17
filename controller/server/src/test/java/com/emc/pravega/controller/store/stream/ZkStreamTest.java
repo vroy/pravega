@@ -3,13 +3,20 @@
  */
 package com.emc.pravega.controller.store.stream;
 
-import com.emc.pravega.testcommon.TestingServerStarter;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.spy;
+import com.emc.pravega.controller.store.stream.tables.HistoryRecord;
+import com.emc.pravega.controller.store.stream.tables.IndexRecord;
 import com.emc.pravega.controller.store.stream.tables.SegmentRecord;
 import com.emc.pravega.controller.store.stream.tables.State;
 import com.emc.pravega.controller.stream.api.grpc.v1.Controller.CreateScopeStatus;
 import com.emc.pravega.controller.stream.api.grpc.v1.Controller.DeleteScopeStatus;
 import com.emc.pravega.stream.ScalingPolicy;
 import com.emc.pravega.stream.StreamConfiguration;
+import com.emc.pravega.testcommon.TestingServerStarter;
 import com.google.common.collect.Lists;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -33,12 +40,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.spy;
 
 public class ZkStreamTest {
     private static final String SCOPE = "scope";
@@ -469,5 +470,41 @@ public class ZkStreamTest {
 
         assert store.transactionStatus(ZkStreamTest.SCOPE, streamName, UUID.randomUUID(), context, executor)
                 .get().equals(TxnStatus.UNKNOWN);
+    }
+
+    @Test
+    public void testTableRecordUpdates() throws Exception {
+        final ScalingPolicy policy = ScalingPolicy.fixed(1);
+
+        String scopeName = "testTables";
+        String streamName = "testTables";
+        final ZKScope scope = new ZKScope(scopeName, new ZKStoreHelper(cli, executor));
+        scope.createScope().get();
+
+        final ZKStream stream = new ZKStream(scopeName, streamName, new ZKStoreHelper(cli, executor));
+
+        StreamConfiguration streamConfig = StreamConfiguration.builder()
+                .scope(scopeName)
+                .streamName(streamName)
+                .scalingPolicy(policy)
+                .build();
+
+        stream.create(streamConfig, System.currentTimeMillis()).get();
+        stream.updateState(State.ACTIVE).get();
+
+        AbstractMap.SimpleEntry<Double, Double> segment1 = new AbstractMap.SimpleEntry<>(0.0, 0.75);
+        AbstractMap.SimpleEntry<Double, Double> segment2 = new AbstractMap.SimpleEntry<>(0.75, 1.0);
+        List<Integer> sealedSegments = Collections.singletonList(0);
+
+        long scaleTimestamp = System.currentTimeMillis();
+        List<Integer> segmentCreated = stream.startScale(sealedSegments, Arrays.asList(segment1, segment2), scaleTimestamp).get()
+                .stream().map(Segment::getNumber).collect(Collectors.toList());
+        stream.scaleNewSegmentsCreated(sealedSegments, segmentCreated, scaleTimestamp).get();
+        stream.scaleOldSegmentsSealed(sealedSegments, segmentCreated, scaleTimestamp).get();
+
+        IndexRecord indexRecord = IndexRecord.readLatestRecord(stream.getIndexTable().get().getData()).get();
+        HistoryRecord historyRecord = HistoryRecord.readRecord(stream.getHistoryTable().get().getData(), indexRecord.getHistoryOffset(), true).get();
+
+        assertEquals(historyRecord.getSegments(), Lists.newArrayList(1, 2));
     }
 }
