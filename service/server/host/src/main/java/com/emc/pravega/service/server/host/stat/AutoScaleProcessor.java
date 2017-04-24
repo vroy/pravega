@@ -108,21 +108,36 @@ public class AutoScaleProcessor {
         maintenanceExecutor.schedule(() -> Retry.indefinitelyWithExpBackoff(100, 10, 10000,
                 e -> log.error("error while creating writer for requeststream {}", e))
                 .runAsync(() -> {
-                    if (clientFactory.get() == null) {
-                        clientFactory.compareAndSet(null, ClientFactory.withScope(NameUtils.INTERNAL_SCOPE_NAME, configuration.getControllerUri()));
-                    }
+                    try {
+                        log.debug("requeststream bootstrap");
 
-                    this.writer.set(clientFactory.get().createEventWriter(configuration.getInternalRequestStream(),
-                            serializer,
-                            writerConfig));
-                    initialized.set(true);
-                    // even if there is no activity, keep cleaning up the cache so that scale down can be triggered.
-                    // caches do not perform clean up if there is no activity. This is because they do not maintain their
-                    // own background thread.
-                    maintenanceExecutor.scheduleAtFixedRate(cache::cleanUp, 0, configuration.getCacheCleanup().getSeconds(), TimeUnit.SECONDS);
-                    log.debug("bootstrapping auto-scale reporter done");
-                    createWriter.complete(null);
-                    return createWriter;
+                        if (clientFactory.get() == null) {
+                            log.debug("bootstrapping requeststream:: client factory creation");
+
+                            clientFactory.compareAndSet(null, ClientFactory.withScope(NameUtils.INTERNAL_SCOPE_NAME, configuration.getControllerUri()));
+                        }
+
+                        log.debug("bootstrapping requeststream:: writer creation");
+
+                        this.writer.set(clientFactory.get().createEventWriter(configuration.getInternalRequestStream(),
+                                serializer,
+                                writerConfig));
+                        log.debug("bootstrapping requeststream:: writer creation done");
+
+                        initialized.set(true);
+                        // even if there is no activity, keep cleaning up the cache so that scale down can be triggered.
+                        // caches do not perform clean up if there is no activity. This is because they do not maintain their
+                        // own background thread.
+                        log.debug("bootstrapping requeststream:: scheduling cache maintenance");
+
+                        maintenanceExecutor.scheduleAtFixedRate(cache::cleanUp, 0, configuration.getCacheCleanup().getSeconds(), TimeUnit.SECONDS);
+                        log.debug("bootstrapping auto-scale reporter done");
+                        createWriter.complete(null);
+                        return createWriter;
+                    } catch (Throwable t) {
+                        log.error("writer creation threw exception:: {}", t);
+                        throw new RuntimeException(t);
+                    }
                 }, maintenanceExecutor), 10, TimeUnit.SECONDS);
     }
 
