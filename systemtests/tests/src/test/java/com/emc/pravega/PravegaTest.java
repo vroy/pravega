@@ -21,6 +21,7 @@ import com.emc.pravega.stream.ScalingPolicy;
 import com.emc.pravega.stream.StreamConfiguration;
 import com.emc.pravega.stream.impl.ControllerImpl;
 import com.emc.pravega.stream.impl.JavaSerializer;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,11 +30,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import mesosphere.marathon.client.utils.MarathonException;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -80,7 +83,7 @@ public class PravegaTest {
         log.debug("bookkeeper service details: {}", bkUris);
 
         //3. start controller
-        Service conService = new PravegaControllerService("controller", zkUri);
+        Service conService = new PravegaControllerService("controller", zkUri, 2, 0.1, 700);
         if (!conService.isRunning()) {
             conService.start(true);
         }
@@ -89,7 +92,7 @@ public class PravegaTest {
         log.debug("Pravega Controller service details: {}", conUris);
 
         //4.start host
-        Service segService = new PravegaSegmentStoreService("segmentstore", zkUri, conUris.get(0));
+        Service segService = new PravegaSegmentStoreService("segmentstore", zkUri, conUris.get(0), 2, 0.1, 1000);
         if (!segService.isRunning()) {
             segService.start(true);
         }
@@ -114,7 +117,7 @@ public class PravegaTest {
     @Before
     public void createStream() throws InterruptedException, URISyntaxException, ExecutionException {
 
-        Service conService = new PravegaControllerService("controller", null,  0, 0.0, 0.0);
+        Service conService = new PravegaControllerService("controller", null, 0, 0.0, 0.0);
         List<URI> ctlURIs = conService.getServiceDetails();
         URI controllerUri = ctlURIs.get(0);
         log.info("Invoking create stream with Controller URI: {}", controllerUri);

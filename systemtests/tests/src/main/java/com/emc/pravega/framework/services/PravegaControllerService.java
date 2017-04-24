@@ -34,7 +34,7 @@ public class PravegaControllerService extends MarathonBasedService {
     private static final int CONTROLLER_PORT = 9092;
     private static final int REST_PORT = 10080;
     private final URI zkUri;
-    private int instances = 1;
+    private int instances = 2;
     private double cpu = 0.1;
     private double mem = 700;
 

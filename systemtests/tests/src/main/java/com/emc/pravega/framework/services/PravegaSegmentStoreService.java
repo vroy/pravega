@@ -33,7 +33,7 @@ public class PravegaSegmentStoreService extends MarathonBasedService {
     private static final int SEGMENTSTORE_PORT = 12345;
     private static final int BACK_OFF_SECS = 7200;
     private final URI zkUri;
-    private int instances = 1;
+    private int instances = 2;
     private double cpu = 0.1;
     private double mem = 1000.0;
     private final URI conUri;
@@ -104,7 +104,7 @@ public class PravegaSegmentStoreService extends MarathonBasedService {
         volumeCollection.add(createVolume("/tmp/logs", "/mnt/logs", "RW"));
         app.getContainer().setVolumes(volumeCollection);
         //set the image and network
-        app.getContainer().getDocker().setImage(IMAGE_PATH + "/nautilus/pravega-host:" + PRAVEGA_VERSION);
+        app.getContainer().getDocker().setImage(IMAGE_PATH + "/nautilus/pravega-host:temp");
         app.getContainer().getDocker().setNetwork(NETWORK_TYPE);
         app.getContainer().getDocker().setForcePullImage(FORCE_IMAGE);
         List<Parameter> parameterList = new ArrayList<>();

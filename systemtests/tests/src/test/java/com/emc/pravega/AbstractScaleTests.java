@@ -9,6 +9,7 @@ import com.emc.pravega.framework.services.PravegaControllerService;
 import com.emc.pravega.framework.services.Service;
 import com.emc.pravega.stream.impl.ControllerImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Ignore;
 
 import java.net.URI;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Abstract scale tests. This contains all the common methods used for auto scale related tests.
  */
 @Slf4j
+@Ignore
 abstract class AbstractScaleTests {
     private final AtomicReference<ClientFactory> clientFactoryRef = new AtomicReference<>();
     private final AtomicReference<ControllerImpl> controllerRef = new AtomicReference<>();
