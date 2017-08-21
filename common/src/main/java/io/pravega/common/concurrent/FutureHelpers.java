@@ -109,13 +109,15 @@ public final class FutureHelpers {
     public static <T> boolean isSuccessful(CompletableFuture<T> f) {
         return f.isDone() && !f.isCompletedExceptionally() && !f.isCancelled();
     }
-    
+
     /**
      * If the future has failed returns the exception that caused it. Otherwise returns null.
+     * @param <T> something
+     * @param future something
      * @return null or the exception that caused the Future to fail.
      */
     public static <T> Throwable getException(CompletableFuture<T> future) {
-        try {            
+        try {
             future.getNow(null);
             return null;
         } catch (Exception e) {
