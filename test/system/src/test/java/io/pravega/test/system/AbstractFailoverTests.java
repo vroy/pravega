@@ -196,11 +196,6 @@ abstract class AbstractFailoverTests {
                         log.debug("Read timeout");
                     }
                 } catch (Throwable e) {
-                    //TODO: remove it once issue https://github.com/pravega/pravega/issues/1687 is fixed.
-                    if (e.getCause() instanceof RetriesExhaustedException || e instanceof RetriesExhaustedException) {
-                        log.warn("Test exception in reading events: ", e);
-                        continue;
-                    }
                     log.error("Test exception in reading events: ", e);
                     testState.getReadException.set(e);
                 }
